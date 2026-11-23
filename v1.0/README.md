@@ -61,6 +61,9 @@ shared/             envs.json（环境分工表）、voices.json（音色资产�
    python whale.py voice  listen/examples/test-chords.wav
    ```
 
+   听这一层**不需要下权重**：转录用的 `listen/models/nmp.onnx`（basic-pitch，Apache-2.0，0.2MB）已经在仓库里。
+   装完依赖就能跑，这一步是唯一开箱可跑的部分。
+
 5. 唱：先按自己的模型位置改 `shared/envs.json` 里的引擎路径，再
 
    ```bash
