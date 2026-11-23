@@ -1,0 +1,409 @@
+import numpy as np
+import pytest
+
+from inference.API import asr_api
+
+
+class _FakeQueue:
+    def __init__(self):
+        self.items = []
+
+    def put(self, item):
+        self.items.append(item)
+
+
+class _FakeProcess:
+    def __init__(self):
+        self.started = False
+        self.terminated = False
+        self.joined = False
+        self.alive = False
+
+    def terminate(self):
+        self.terminated = True
+        self.alive = False
+
+    def start(self):
+        self.started = True
+        self.alive = True
+
+    def join(self, timeout=None):
+        self.joined = True
+
+    def is_alive(self):
+        return self.alive
+
+
+class _FakeContext:
+    def __init__(self, process, queues):
+        self._process = process
+        self._queues = list(queues)
+
+    def Queue(self):
+        return self._queues.pop(0)
+
+    def Process(self, *args, **kwargs):
+        return self._process
+
+
+def test_subprocess_timeout_terminates_pool(monkeypatch, tmp_path):
+    worker = _FakeProcess()
+    task_queue = _FakeQueue()
+    result_queue = _FakeQueue()
+    ctx = _FakeContext(worker, [task_queue, result_queue])
+    monkeypatch.setattr(asr_api.mp, "get_context", lambda method: ctx)
+    wait_calls = iter([{"type": "ready"}])
+
+    def fake_wait(*args, **kwargs):
+        try:
+            return next(wait_calls)
+        except StopIteration:
+            raise asr_api.mp.TimeoutError
+
+    monkeypatch.setattr(asr_api, "_wait_for_worker_message", fake_wait)
+
+    chunks = [{"waveform": np.zeros(16, dtype=np.float32)}]
+
+    with pytest.raises(TimeoutError, match="timed out"):
+        asr_api.batch_transcribe_asr(
+            chunks,
+            sr=16000,
+            asr_model=None,
+            temp_dir_path=tmp_path,
+            asr_batch_size=1,
+            language="zh",
+            asr_model_path="asr",
+            device="cpu",
+            force_subprocess=True,
+            asr_timeout_sec=0.0,
+        )
+
+    assert worker.started is True
+    assert worker.terminated is True
+    assert worker.joined is True
+    assert task_queue.items[0]["type"] == "transcribe"
+    assert task_queue.items[0]["asr_prompt"] == asr_api.DEFAULT_QWEN_ASR_PROMPT
+
+
+def test_clear_romaji_cache_clears_model_cache():
+    asr_api._ROMAJI_MODEL_CACHE["x"] = object()
+
+    asr_api.clear_romaji_model_cache()
+
+    assert asr_api._ROMAJI_MODEL_CACHE == {}
+
+
+def test_load_qwen_model_uses_dml_runtime_cache(monkeypatch):
+    calls = []
+
+    class _DummyModel:
+        device = "dml+cpu"
+        encoder_provider_name = "dml"
+        encoder_frontend_providers = ["DmlExecutionProvider", "CPUExecutionProvider"]
+        decoder_backend = "vulkan"
+
+        def shutdown(self):
+            calls.append("shutdown")
+
+    dummy_model = _DummyModel()
+
+    def fake_from_model_path(cls, model_path, device="dml", verbose=False):
+        calls.append((model_path, device, verbose))
+        return dummy_model
+
+    monkeypatch.setattr(
+        asr_api.Qwen3ASRDmlModel,
+        "from_model_path",
+        classmethod(fake_from_model_path),
+    )
+
+    first = asr_api.load_qwen_model("models/Qwen3-ASR-1.7B-dml", device="cpu", use_cache=True)
+    second = asr_api.load_qwen_model("models/Qwen3-ASR-1.7B-dml", device="cpu", use_cache=True)
+
+    assert first is dummy_model
+    assert second is dummy_model
+    assert calls == [("models/Qwen3-ASR-1.7B-dml", "cpu", False)]
+
+    asr_api.clear_qwen_model_cache()
+
+    assert calls[-1] == "shutdown"
+
+
+def test_load_romaji_model_reuses_dml_cache(monkeypatch, tmp_path):
+    calls = []
+    asr_api.clear_romaji_model_cache()
+
+    class _DummyRomajiModel:
+        sample_rate = 16000
+        provider = "dml"
+
+    def fake_resolve_model_dir(model_dir):
+        return tmp_path / "romaji"
+
+    def fake_from_model_path(cls, model_path, device="dml", verbose=False):
+        calls.append((str(model_path), device, verbose))
+        return _DummyRomajiModel()
+
+    monkeypatch.setattr(asr_api, "resolve_model_dir", fake_resolve_model_dir)
+    monkeypatch.setattr(
+        asr_api.RomajiASROnnxModel,
+        "from_model_path",
+        classmethod(fake_from_model_path),
+    )
+
+    first = asr_api.load_romaji_asr_model("models/romajiASR", device="dml", use_cache=True)
+    second = asr_api.load_romaji_asr_model("models/romajiASR", device="dml", use_cache=True)
+
+    assert first is second
+    assert len(calls) == 1
+    assert ("models/romajiASR", "dml") in [((tmp_path / "romaji").name, d) for d in ("dml",)] or len(asr_api._ROMAJI_MODEL_CACHE) == 1
+
+    asr_api.clear_romaji_model_cache()
+
+
+def test_load_pinyin_model_reuses_dml_cache(monkeypatch, tmp_path):
+    calls = []
+    asr_api.clear_pinyin_model_cache()
+
+    class _DummyPinyinModel:
+        sample_rate = 16000
+        provider = "dml"
+
+    def fake_resolve_model_dir(model_dir):
+        return tmp_path / "pinyin"
+
+    def fake_from_model_path(cls, model_path, device="dml", verbose=False):
+        calls.append((str(model_path), device, verbose))
+        return _DummyPinyinModel()
+
+    monkeypatch.setattr(asr_api, "resolve_pinyin_model_dir", fake_resolve_model_dir)
+    monkeypatch.setattr(
+        asr_api.PinyinASROnnxModel,
+        "from_model_path",
+        classmethod(fake_from_model_path),
+    )
+
+    first = asr_api.load_pinyin_asr_model("models/pinyinASR", device="dml", use_cache=True)
+    second = asr_api.load_pinyin_asr_model("models/pinyinASR", device="dml", use_cache=True)
+
+    assert first is second
+    assert len(calls) == 1
+    assert len(asr_api._PINYIN_MODEL_CACHE) == 1
+
+    asr_api.clear_pinyin_model_cache()
+
+
+def test_load_romaji_model_keeps_cpu_cache(monkeypatch, tmp_path):
+    calls = []
+    asr_api.clear_romaji_model_cache()
+
+    class _DummyRomajiModel:
+        sample_rate = 16000
+        provider = "cpu"
+
+    def fake_resolve_model_dir(model_dir):
+        return tmp_path / "romaji"
+
+    def fake_from_model_path(cls, model_path, device="cpu", verbose=False):
+        calls.append((str(model_path), device, verbose))
+        return _DummyRomajiModel()
+
+    monkeypatch.setattr(asr_api, "resolve_model_dir", fake_resolve_model_dir)
+    monkeypatch.setattr(
+        asr_api.RomajiASROnnxModel,
+        "from_model_path",
+        classmethod(fake_from_model_path),
+    )
+
+    first = asr_api.load_romaji_asr_model("models/romajiASR", device="cpu", use_cache=True)
+    second = asr_api.load_romaji_asr_model("models/romajiASR", device="cpu", use_cache=True)
+
+    assert first is second
+    assert len(calls) == 1
+
+    asr_api.clear_romaji_model_cache()
+
+
+def test_batch_transcribe_asr_sanitizes_results_and_passes_default_prompt_in_process(tmp_path):
+    calls = []
+
+    class _DummyModel:
+        def transcribe(self, audio, language=None, context=None):
+            calls.append(
+                {
+                    "audio": list(audio),
+                    "language": language,
+                    "context": context,
+                }
+            )
+            return [{"text": "hi welcome 北京欢迎你"}]
+
+    chunks = [{"waveform": np.zeros(32, dtype=np.float32), "offset": 0.0}]
+
+    results, chunk_indices = asr_api.batch_transcribe_asr(
+        chunks,
+        sr=16000,
+        asr_model=_DummyModel(),
+        temp_dir_path=tmp_path,
+        asr_batch_size=1,
+        language="zh",
+        device="cpu",
+        force_subprocess=False,
+    )
+
+    assert chunk_indices == [0]
+    assert results == [{"text": "北京欢迎你"}]
+    assert len(calls) == 1
+    assert calls[0]["language"] == "Chinese"
+    assert calls[0]["context"] == asr_api.DEFAULT_QWEN_ASR_PROMPT
+
+
+def test_batch_transcribe_asr_sanitizes_subprocess_results(monkeypatch, tmp_path):
+    worker = _FakeProcess()
+    task_queue = _FakeQueue()
+    result_queue = _FakeQueue()
+    ctx = _FakeContext(worker, [task_queue, result_queue])
+    monkeypatch.setattr(asr_api.mp, "get_context", lambda method: ctx)
+    wait_calls = iter(
+        [
+            {"type": "ready"},
+            {
+                "type": "result",
+                "task_id": 0,
+                "result": [{"text": "hi welcome 北京欢迎你"}],
+            },
+        ]
+    )
+
+    def fake_wait(*args, **kwargs):
+        return next(wait_calls)
+
+    monkeypatch.setattr(asr_api, "_wait_for_worker_message", fake_wait)
+
+    chunks = [{"waveform": np.zeros(16, dtype=np.float32), "offset": 0.0}]
+
+    results, chunk_indices = asr_api.batch_transcribe_asr(
+        chunks,
+        sr=16000,
+        asr_model=None,
+        temp_dir_path=tmp_path,
+        asr_batch_size=1,
+        language="zh",
+        asr_model_path="asr",
+        device="cpu",
+        force_subprocess=True,
+        asr_timeout_sec=1.0,
+    )
+
+    assert chunk_indices == [0]
+    assert results == [{"text": "北京欢迎你"}]
+    assert worker.started is True
+    assert task_queue.items[0]["asr_prompt"] == asr_api.DEFAULT_QWEN_ASR_PROMPT
+
+
+def test_english_asr_text_filter_keeps_dictionary_words():
+    from inference.API.asr_api import _filter_qwen_asr_text_for_lyric_flow
+
+    assert (
+        _filter_qwen_asr_text_for_lyric_flow("Hello, 世界! I don’t know.", "en")
+        == "Hello I don't know"
+    )
+    assert _filter_qwen_asr_text_for_lyric_flow("北京欢迎你", "en") == ""
+    # zh/ja behavior is unchanged.
+    assert _filter_qwen_asr_text_for_lyric_flow("hello 世界 nihongo", "zh") == "世界"
+
+
+def test_qwen_asr_language_names_cover_english():
+    from inference.API.asr_api import QWEN_ASR_LANGUAGE_NAMES
+
+    assert QWEN_ASR_LANGUAGE_NAMES["en"] == "English"
+    assert QWEN_ASR_LANGUAGE_NAMES["ja"] == "Japanese"
+    assert QWEN_ASR_LANGUAGE_NAMES["zh"] == "Chinese"
+
+
+def test_shared_session_spawns_worker_once(monkeypatch, tmp_path):
+    worker = _FakeProcess()
+    task_queue = _FakeQueue()
+    result_queue = _FakeQueue()
+    ctx = _FakeContext(worker, [task_queue, result_queue])
+    monkeypatch.setattr(asr_api.mp, "get_context", lambda method: ctx)
+    messages = iter([
+        {"type": "ready"},
+        {"type": "result", "task_id": 0, "result": [{"text": "你好"}]},
+        {"type": "result", "task_id": 0, "result": [{"text": "世界"}]},
+    ])
+    monkeypatch.setattr(asr_api, "_wait_for_worker_message", lambda *a, **k: next(messages))
+
+    session = asr_api.AsrSubprocessSession()
+    chunks = [{"waveform": np.zeros(16, dtype=np.float32)}]
+    for expected in ("你好", "世界"):
+        results, _ = asr_api.batch_transcribe_asr(
+            chunks, sr=16000, asr_model=None, temp_dir_path=tmp_path,
+            asr_batch_size=1, language="zh", asr_model_path="asr", device="cpu",
+            force_subprocess=True, asr_timeout_sec=1.0, session=session,
+        )
+        assert results == [{"text": expected}]
+
+    assert worker.started is True
+    assert worker.terminated is False  # never hard-killed between calls
+    session.close()
+    assert task_queue.items[-1] == {"type": "stop"}
+
+
+def test_session_respawns_worker_when_device_changes(monkeypatch, tmp_path):
+    worker = _FakeProcess()
+    queues = [_FakeQueue(), _FakeQueue(), _FakeQueue(), _FakeQueue()]
+    ctx = _FakeContext(worker, queues)
+    monkeypatch.setattr(asr_api.mp, "get_context", lambda method: ctx)
+    messages = iter([
+        {"type": "ready"},
+        {"type": "result", "task_id": 0, "result": [{"text": "你好"}]},
+        {"type": "ready"},
+        {"type": "result", "task_id": 0, "result": [{"text": "世界"}]},
+    ])
+    monkeypatch.setattr(asr_api, "_wait_for_worker_message", lambda *a, **k: next(messages))
+
+    session = asr_api.AsrSubprocessSession()
+    chunks = [{"waveform": np.zeros(16, dtype=np.float32)}]
+    for device, expected in (("cpu", "你好"), ("dml", "世界")):
+        results, _ = asr_api.batch_transcribe_asr(
+            chunks, sr=16000, asr_model=None, temp_dir_path=tmp_path,
+            asr_batch_size=1, language="zh", asr_model_path="asr", device=device,
+            force_subprocess=True, asr_timeout_sec=1.0, session=session,
+        )
+        assert results == [{"text": expected}]
+
+    # the stale worker was terminated before respawning for the new device
+    assert worker.terminated is True
+    assert worker.started is True
+
+
+def test_sessionless_call_uses_one_shot_worker(monkeypatch, tmp_path):
+    worker = _FakeProcess()
+    task_queue = _FakeQueue()
+    result_queue = _FakeQueue()
+    ctx = _FakeContext(worker, [task_queue, result_queue])
+    monkeypatch.setattr(asr_api.mp, "get_context", lambda method: ctx)
+    messages = iter([
+        {"type": "ready"},
+        {"type": "result", "task_id": 0, "result": [{"text": "你好"}]},
+    ])
+    monkeypatch.setattr(asr_api, "_wait_for_worker_message", lambda *a, **k: next(messages))
+
+    chunks = [{"waveform": np.zeros(16, dtype=np.float32)}]
+    results, _ = asr_api.batch_transcribe_asr(
+        chunks, sr=16000, asr_model=None, temp_dir_path=tmp_path,
+        asr_batch_size=1, language="zh", asr_model_path="asr", device="cpu",
+        force_subprocess=True, asr_timeout_sec=1.0,
+    )
+    assert results == [{"text": "你好"}]
+    # one-shot lifecycle: graceful shutdown already happened inside the call
+    assert task_queue.items[-1] == {"type": "stop"}
+
+
+def test_cantonese_asr_text_simplifies_traditional_characters():
+    raw = "冷風偏偏吹雪，你凍嗎？這顆卑微的心它不再跳。"
+    res = asr_api._filter_qwen_asr_text_for_lyric_flow(raw, "yue")
+    assert res == "冷风偏偏吹雪，你冻吗？这颗卑微的心它不再跳。"
+
+

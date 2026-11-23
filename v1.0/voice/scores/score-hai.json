@@ -1,0 +1,10 @@
+[
+  {"lyric": "hai",  "midi": 64, "dur": 0.45},
+  {"lyric": "hen",  "midi": 67, "dur": 0.35},
+  {"lyric": "shen", "midi": 69, "dur": 0.62},
+  {"lyric": "wo",   "midi": 64, "dur": 0.30},
+  {"lyric": "ye",   "midi": 62, "dur": 0.30},
+  {"lyric": "neng", "midi": 60, "dur": 0.34},
+  {"lyric": "chang","midi": 67, "dur": 0.42},
+  {"lyric": "ge",   "midi": 72, "dur": 1.05}
+]

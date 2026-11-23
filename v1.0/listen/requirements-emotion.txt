@@ -1,0 +1,13 @@
+# listen 情感线（可选，2026-11-13）
+# 单独 venv：C:\...\Python310\python.exe -m venv env_ear
+# torch 走官方 CUDA 源：
+#   pip install torch==2.6.0+cu124 torchaudio==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+torchaudio==2.6.0+cu124
+funasr>=1.4.26
+modelscope>=1.40
+transformers>=5.20
+librosa>=0.11
+soundfile>=0.14
+numpy<2
+more_itertools

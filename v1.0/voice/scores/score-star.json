@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "text": "一闪一闪亮晶晶 满天都是小星星 挂在天上放光明 好像许多小眼睛",
+    "tempo": 100,
+    "key": "C",
+    "source": "《小星星》（Twinkle Twinkle Little Star，公有领域童谣，中文填词）；2026-11-15 手写，落盘 whale-chord/voice/score-star.json",
+    "purpose": "E1 转换模型的正式听感/测量样本：28 音 18.6 秒，跨两个乐句、有长音收尾，比 score-hai（8 音 4.8 秒）长四倍——颤音、动态、断音这些维度短片段量不出来。",
+    "not_a_song": "这不是我们的歌，只是测试旋律；作者要的原创歌另说（不拿别人的曲当成品）。"
+  },
+  "notes": [
+    {"midi": 60, "dur": 0.6, "lyric": "yi"},
+    {"midi": 60, "dur": 0.6, "lyric": "shan"},
+    {"midi": 67, "dur": 0.6, "lyric": "yi"},
+    {"midi": 67, "dur": 0.6, "lyric": "shan"},
+    {"midi": 69, "dur": 0.6, "lyric": "liang"},
+    {"midi": 69, "dur": 0.6, "lyric": "jing"},
+    {"midi": 67, "dur": 1.2, "lyric": "jing"},
+
+    {"midi": 65, "dur": 0.6, "lyric": "man"},
+    {"midi": 65, "dur": 0.6, "lyric": "tian"},
+    {"midi": 64, "dur": 0.6, "lyric": "dou"},
+    {"midi": 64, "dur": 0.6, "lyric": "shi"},
+    {"midi": 62, "dur": 0.6, "lyric": "xiao"},
+    {"midi": 62, "dur": 0.6, "lyric": "xing"},
+    {"midi": 60, "dur": 1.2, "lyric": "xing"},
+
+    {"midi": 67, "dur": 0.6, "lyric": "gua"},
+    {"midi": 67, "dur": 0.6, "lyric": "zai"},
+    {"midi": 65, "dur": 0.6, "lyric": "tian"},
+    {"midi": 65, "dur": 0.6, "lyric": "shang"},
+    {"midi": 64, "dur": 0.6, "lyric": "fang"},
+    {"midi": 64, "dur": 0.6, "lyric": "guang"},
+    {"midi": 62, "dur": 0.6, "lyric": "ming"},
+
+    {"midi": 67, "dur": 0.6, "lyric": "hao"},
+    {"midi": 67, "dur": 0.6, "lyric": "xiang"},
+    {"midi": 65, "dur": 0.6, "lyric": "xu"},
+    {"midi": 65, "dur": 0.6, "lyric": "duo"},
+    {"midi": 64, "dur": 0.6, "lyric": "xiao"},
+    {"midi": 64, "dur": 0.6, "lyric": "yan"},
+    {"midi": 62, "dur": 1.2, "lyric": "jing"}
+  ]
+}

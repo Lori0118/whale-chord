@@ -1,0 +1,7 @@
+[
+  {"lyric": "shuo", "midi": 57, "dur": 0.48, "contour": [2.2, 1.6, 2.0]},
+  {"lyric": "de",   "midi": 57, "dur": 0.20, "contour": [-1.0, -1.8, -2.2]},
+  {"lyric": "hai",  "midi": 57, "dur": 0.42, "contour": [-2.5, -1.0, 1.5]},
+  {"lyric": "bu",   "midi": 57, "dur": 0.30, "contour": [1.5, -1.5, -4.0]},
+  {"lyric": "hao",  "midi": 57, "dur": 0.52, "contour": [-2.0, -4.0, -2.0]}
+]

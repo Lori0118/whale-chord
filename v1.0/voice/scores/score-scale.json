@@ -1,0 +1,17 @@
+﻿[
+  {"midi": 60, "dur": 0.40, "lyric": "a"},
+  {"midi": 62, "dur": 0.40, "lyric": "a"},
+  {"midi": 64, "dur": 0.40, "lyric": "a"},
+  {"midi": 65, "dur": 0.40, "lyric": "a"},
+  {"midi": 67, "dur": 0.40, "lyric": "a"},
+  {"midi": 69, "dur": 0.40, "lyric": "a"},
+  {"midi": 71, "dur": 0.40, "lyric": "a"},
+  {"midi": 72, "dur": 0.90, "lyric": "a"},
+  {"midi": 71, "dur": 0.35, "lyric": "a"},
+  {"midi": 69, "dur": 0.35, "lyric": "a"},
+  {"midi": 67, "dur": 0.35, "lyric": "a"},
+  {"midi": 65, "dur": 0.35, "lyric": "a"},
+  {"midi": 64, "dur": 0.35, "lyric": "a"},
+  {"midi": 62, "dur": 0.35, "lyric": "a"},
+  {"midi": 60, "dur": 1.20, "lyric": "a"}
+]

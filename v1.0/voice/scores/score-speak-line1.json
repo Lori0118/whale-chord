@@ -1,0 +1,8 @@
+[
+  {"lyric": "wo",   "midi": 57, "dur": 0.38, "contour": [-1.0, 1.0, 2.5]},
+  {"lyric": "ye",   "midi": 57, "dur": 0.42, "contour": [-1.5, -3.5, -2.5]},
+  {"lyric": "zai",  "midi": 57, "dur": 0.48, "contour": [2.6, -0.6, -5.2]},
+  {"lyric": "xue",  "midi": 57, "dur": 0.72, "contour": [-3.2, -5.2, 0.5]},
+  {"lyric": "shuo", "midi": 57, "dur": 0.62, "contour": [1.8, 0.2, 1.3]},
+  {"lyric": "hua",  "midi": 57, "dur": 0.42, "contour": [3.0, -2.0, -5.5]}
+]

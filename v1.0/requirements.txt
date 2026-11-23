@@ -1,0 +1,12 @@
+# whale-chord 的 Python 依赖（只说/唱/听这条日常路径）
+# 环境位置：.\env
+# 重建：python -m venv env && env\Scripts\python.exe -m pip install -r requirements.txt
+# 说明：numpy 钉在 <2，因为 sing.py 的合成参数是在 numpy 1.x 下调出来的，别为了新版本冒险。
+numpy<2
+librosa>=0.10
+soundfile>=0.12
+scipy>=1.10
+onnxruntime>=1.16
+pretty_midi>=0.2.10
+matplotlib>=3.7
+demucs-onnx>=0.3

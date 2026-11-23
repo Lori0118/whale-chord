@@ -1,0 +1,32 @@
+{
+  "_说明": "音色资产表（契约 1）。一条记录 = 一把嗓子；载体永远是文件，不是描述词。python whale.py voices 读这张表。",
+  "_加入规矩": [
+    "只登记能被 whale.py 直接指派去干活的东西（wav / UTAU 音源库 / RVC 权重），不登记实验性脚本。",
+    "status 只有四种：locked=验收过、candidate=能用没定、experimental=验证中、retired=路线判死但文件留着。",
+    "measure 里的数只用于同一套方法的横向比，绝对值不外推。"
+  ],
+  "_示例": "下面这条是格式示例，删掉换成你自己的嗓子。同一段描述、同一个 seed 重跑出来的不是同一条嗓子，所以音色必须存成文件。",
+  "voices": [
+    {
+      "id": "example-speak",
+      "label": "示例：低、慢半拍、尾音懒（描述词只做备注，不参与生成）",
+      "kind": "wav",
+      "file": "voice/voicebank/example/ref.wav",
+      "meta": "voice/voicebank/example/meta.json",
+      "use": ["speak"],
+      "status": "candidate",
+      "measure": {"dur_s": 3.0, "f0_med_hz": 200, "cen_energy_hz": 250, "hf_pct": 0.2},
+      "measure_note": "这些数只用于同一套方法的横向比；跨表比「像不像这把嗓子」要先统一口径。",
+      "known_limit": "说和唱要分开准备母本：能说话的腔调不一定唱得好听。"
+    },
+    {
+      "id": "example-sing",
+      "label": "示例：UTAU 音源库（第三方音源请遵守库内许可）",
+      "kind": "utau-bank",
+      "file": "voice/voicebank/example-utau-bank",
+      "use": ["sing"],
+      "status": "candidate",
+      "known_limit": "它是「唱得连贯」的对照工具，不是你的音色；拿来验引擎、验谱。"
+    }
+  ]
+}

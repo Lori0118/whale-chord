@@ -1,0 +1,24 @@
+{
+  "_说明": "whale-chord 的解释器分工表。所有 python 路径都相对项目根（也就是 whale.py 所在目录）。改这里的路径只改这一处。",
+  "roles": {
+    "core": {
+      "python": ".venv/Scripts/python.exe",
+      "desc": "听 / 体检 / 对照 / 说 / 唱（UTAU 引擎）—— 一个环境覆盖三件事",
+      "version": "3.10+"
+    },
+    "rvc": {
+      "python": ".venv-rvc/Scripts/python.exe",
+      "desc": "RVC 换声与训练（需要 torch，单独一个环境，因为它和 core 的依赖互相顶）",
+      "version": "3.10+"
+    }
+  },
+  "scripts": {
+    "listen": "listen/ear.py",
+    "voice": "listen/voice.py",
+    "harmony": "listen/harmony.py",
+    "compare": "listen/compare.py",
+    "check": "voice/tools/rec_check.py",
+    "sing": "voice/sing.py"
+  },
+  "_平台": "上面的 .venv/Scripts/python.exe 是 Windows 写法；Linux/macOS 改成 .venv/bin/python。"
+}
